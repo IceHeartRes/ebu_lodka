@@ -1,0 +1,402 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bacground"
+    android:orientation="horizontal"
+    android:weightSum="4"
+    tools:context=".MainActivity">
+
+    <LinearLayout
+        android:id="@+id/left_layout"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_margin="15dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Температура 1"
+            android:textColor="@color/labelColor"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/temp1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/led"
+            android:text="---"
+            android:textColor="@color/ledColor"
+            android:textSize="@dimen/led_text_size" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Температура 2"
+            android:textColor="@color/labelColor"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/temp2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/led"
+            android:text="---"
+            android:textColor="@color/ledColor"
+            android:textSize="@dimen/led_text_size" />
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="20dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Частота вращения \nдвигателя"
+            android:textColor="@color/labelColor"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/eng_frec"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/led"
+            android:text="---"
+            android:textColor="@color/ledColor"
+            android:textSize="@dimen/led_text_size" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Расход топлива"
+            android:textColor="@color/labelColor"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/gas"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/led"
+            android:text="---"
+            android:textColor="@color/ledColor"
+            android:textSize="@dimen/led_text_size" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="2"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="2">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_weight="1"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/ic_battery_charging_full_black_24dp" />
+
+                <TextView
+                    android:id="@+id/volt"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="---"
+                    android:textColor="@color/labelColor"
+                    android:textSize="26sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_weight="1"
+                android:gravity="center | end"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/alt"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="---"
+                    android:textColor="@color/labelColor"
+                    android:textSize="26sp" />
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/ic_terrain_black_24dp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="250dp"
+            android:layout_height="250dp"
+            android:gravity="center_horizontal"
+            android:layout_gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/speed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/led"
+                android:text="--"
+                android:textColor="@color/ledColor"
+                android:textSize="200dp"
+                tools:text="122" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/led"
+                android:text="км/ч"
+                android:textColor="@color/labelColor"
+                android:textSize="50dp"
+                android:layout_marginTop="-50dp"/>
+        </LinearLayout>
+
+        <!--<com.github.anastr.speedviewlib.SpeedView-->
+            <!--android:id="@+id/speed"-->
+            <!--android:layout_width="250dp"-->
+            <!--android:layout_height="250dp"-->
+            <!--android:layout_gravity="center"-->
+
+            <!--app:sv_maxSpeed="100"-->
+            <!--app:sv_speedTextColor="@color/labelColor"-->
+
+            <!--app:sv_speedTextFormat="INTEGER"-->
+            <!--app:sv_speedTextSize="50dp"-->
+
+            <!--app:sv_textColor="@color/labelColor"-->
+            <!--app:sv_textSize="20dp"-->
+            <!--app:sv_unitTextColor="@color/labelColor" />-->
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="7">
+
+            <ImageView
+                android:id="@+id/settings"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+
+                android:src="@drawable/ic_settings_black_24dp"
+                android:layout_weight="1"/>
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="5"/>
+
+            <ImageView
+                android:id="@+id/connect"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_bluetooth_black_24dp"
+                android:layout_gravity="bottom"
+                android:layout_weight="1"/>
+        </LinearLayout>
+
+    </LinearLayout>
+
+
+    <LinearLayout
+        android:id="@+id/rigth_layout"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_marginStart="15dp"
+        android:layout_marginLeft="15dp"
+        android:layout_marginTop="15dp"
+        android:layout_marginEnd="15dp"
+        android:layout_marginRight="15dp"
+        android:layout_marginBottom="15dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Вход1"
+            android:textAlignment="textEnd"
+            android:textColor="@color/labelColor"
+            android:textSize="15sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="3">
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1" />
+
+            <ImageView
+                android:id="@+id/din1"
+                android:layout_width="0dp"
+                android:layout_height="45dp"
+                android:layout_weight="1"
+                android:background="@color/switch_unchecked"
+                android:gravity="center_vertical" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Вход 2"
+            android:textAlignment="textEnd"
+            android:textColor="@color/labelColor"
+            android:textSize="15sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="3">
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1" />
+
+            <ImageView
+                android:id="@+id/din2"
+                android:layout_width="0dp"
+                android:layout_height="45dp"
+                android:layout_weight="1"
+                android:background="@color/switch_unchecked"
+                android:gravity="center_vertical" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="20dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Выход 1"
+            android:textAlignment="textEnd"
+            android:textColor="@color/labelColor"
+            android:textSize="15sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="3">
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1" />
+
+            <android.support.v7.widget.SwitchCompat
+                android:id="@+id/dout1"
+                android:layout_width="0dp"
+                android:layout_height="45dp"
+                android:layout_weight="1"
+                android:checked="false"
+                android:gravity="center_vertical"
+                android:scaleX="2"
+                android:scaleY="2"
+                android:textColor="@color/labelColor"
+                android:theme="@style/MySwitch" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Выход 2"
+            android:textAlignment="textEnd"
+            android:textColor="@color/labelColor"
+            android:textSize="15sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="3">
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1" />
+
+            <android.support.v7.widget.SwitchCompat
+                android:id="@+id/dout2"
+                android:layout_width="0dp"
+                android:layout_height="45dp"
+                android:layout_weight="1"
+                android:checked="false"
+                android:gravity="center_vertical"
+                android:scaleX="2"
+                android:scaleY="2"
+                android:textColor="@color/labelColor"
+                android:theme="@style/MySwitch" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+
+    <!--</RelativeLayout>-->
+
+    <!--<Button-->
+    <!--android:id="@+id/button"-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="wrap_content"-->
+    <!--android:text="send" />-->
+
+    <!--<Button-->
+    <!--android:id="@+id/button1"-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="wrap_content"-->
+    <!--android:text="send" />-->
+
+
+    <!--</LinearLayout>-->
+
+
+</LinearLayout>

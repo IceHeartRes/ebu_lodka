@@ -11,8 +11,9 @@ import java.util.List;
 public class Response {
     List<BigDecimal> temps;
     List<Integer> freqs;
-    List<Byte> pinsIn;
-    List<Byte> pinsOut;
+    List<Integer> pinsIn;
+    List<Integer> pinsOut;
+    int period;
 
     public Response() {
         temps = new ArrayList<>();
@@ -29,11 +30,11 @@ public class Response {
         freqs.add(freq);
     }
 
-    public void addPinsIn(byte pinState) {
+    public void addPinsIn(Integer pinState) {
         pinsIn.add(pinState);
     }
 
-    public void addPinsOut(byte pinState) {
+    public void addPinsOut(Integer pinState) {
         pinsOut.add(pinState);
     }
 
@@ -45,11 +46,19 @@ public class Response {
         return freqs;
     }
 
-    public List<Byte> getPinsIn() {
+    public List<Integer> getPinsIn() {
         return pinsIn;
     }
 
-    public List<Byte> getPinsOut() {
+    public List<Integer> getPinsOut() {
         return pinsOut;
+    }
+
+    public int getPeriod() {
+        return period;
+    }
+
+    public void setPeriod(int period) {
+        this.period = period;
     }
 }

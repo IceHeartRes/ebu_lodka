@@ -4,6 +4,7 @@ import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
@@ -12,18 +13,28 @@ import android.os.ParcelUuid;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.SwitchCompat;
 import android.view.View;
+import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.github.anastr.speedviewlib.SpeedView;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import rx.Observable;
 import rx.Scheduler;
@@ -33,85 +44,113 @@ import rx.schedulers.Schedulers;
 public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_ENABLE_BT = 1234;
-    public static final int HEADER_LENGTH = 3;
-    public static final int CRC_LENGTH = 1;
+    public static final byte HEADER_LENGTH = 2;
+    public static final byte LENGTH_POS = 1;
+    public static final byte CRC_LENGTH = 1;
+    public static final byte FIELD_LENGTH = 5;
+
     private static final byte STX = 0x02;
 
     private LocationManager locationManager;
 
+    BluetoothUtils.BluetoothDataListener listener = data -> {
+        byte[] data1 = getData(data);
+        Response response = parseData(data1);
+        App.getInstance(MainActivity.this).setResponse(response);
+        displayData(response);
+    };
+
+    private byte switchState = 3;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+//        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 
-        Observable.fromCallable(() -> {
-            final String header = new String(new byte[]{2, 50, 40});
-            final String crc = new String(new byte[]{76});
-            final String data = "t292_t0_t0_t0_f0p400_f100p400_i1_i1_o0_o0";
-            return header + data + crc;
-        })
-                .map(this::getData)
-                .map(this::parseData)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(this::displayData, Throwable::printStackTrace);
+        App app = App.getInstance(this);
 
+        if (!app.isConnected().getAndSet(true)) {
+            startConnect();
+        } else {
+            displayData(app.getResponse());
+            BluetoothUtils.updateListener(listener);
+        }
 
-        BluetoothAdapter bluetooth = BluetoothAdapter.getDefaultAdapter();
-        if (bluetooth != null) {
-            if (bluetooth.isEnabled()) {
-                // Bluetooth включен. Работаем.
-            } else {
-                // Bluetooth выключен. Предложим пользователю включить его.
-                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+        SwitchCompat dout1 = findViewById(R.id.dout1);
+        dout1.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            switchState = (byte) (isChecked ? switchState & 0xFE : switchState | 0x01);
+            final byte[] data = {0x55, 0x01, 0x00, switchState, (byte) (switchState + 1)};
+
+            try {
+                BluetoothUtils.writeToSocket(data);
+            } catch (IOException e) {
+                Toast.makeText(MainActivity.this, e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
             }
+        });
 
-            BluetoothDevice pairedDevice = null;
-            Set<BluetoothDevice> pairedDevices = bluetooth.getBondedDevices();
-            for (BluetoothDevice device : pairedDevices) {
-                if (device.getName().equals("HC-05")) {
-                    pairedDevice = device;
-                    break;
-                }
-            }
+        SwitchCompat dout2 = findViewById(R.id.dout2);
+        dout2.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            switchState = (byte) (isChecked ? switchState & 0xFD : switchState | 0x02);
+            final byte[] data = {0x55, 0x01, 0x00, switchState, (byte) (switchState + 1)};
 
-            if (pairedDevice == null) {
-                Toast.makeText(this, "Не найдено устройство. Соеденитесь с устройством", Toast.LENGTH_LONG).show();
-            } else {
-                /*Observable.just(pairedDevice)
-                        .map(device -> {
-                            try {
-                                UUID uuid = device.getUuids()[0].getUuid();
-                                return device.createRfcommSocketToServiceRecord(uuid);
-                            } catch (IOException e) {
-                                throw new RuntimeException("Не удалось соедениться с устройством");
-                            }
-                        })
-                        .map(bluetoothSocket -> {
-                            try {
-                                return bluetoothSocket.getInputStream();
-                            } catch (IOException e) {
-                                throw new RuntimeException("Не удалось соедениться с устройством");
-                            }
-                        })
-                        .flatMap(this::readFromSocket)
-                        .map(this::getData)
-                        .map(this::parseData)
-                        .subscribeOn(Schedulers.io())
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribe(this::displayData, Throwable::printStackTrace);*/
+            try {
+                BluetoothUtils.writeToSocket(data);
+            } catch (IOException e) {
+                Toast.makeText(MainActivity.this, e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
             }
+        });
+
+        ImageView connect = findViewById(R.id.connect);
+        connect.setOnClickListener(v -> {
+            startConnect();
+        });
+
+        ImageView sett = findViewById(R.id.settings);
+        sett.setOnClickListener(v -> {
+            Intent intent = new Intent(this, SettingsActivity.class);
+            startActivity(intent);
+        });
+
+//        SpeedView speed = findViewById(R.id.speed);
+//        speed.setMaxSpeed((float) app.getMaxSpeed());
+        TextView gas = findViewById(R.id.speed);
+        gas.setText(String.format("%s", app.getSpeed()));
+
+        TextView altitude = findViewById(R.id.alt);
+        altitude.setText(String.format("%s", app.getAlt()));
+    }
+
+    private void startConnect() {
+        try {
+            BluetoothUtils.findBT(this, listener);
+        } catch (IOException e) {
+            Toast.makeText(MainActivity.this, e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
+
     @Override
     protected void onResume() {
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
-                1000 * 10, 10, locationListener);
         super.onResume();
+
+//        SpeedView speed = findViewById(R.id.speed);
+//        speed.setMaxSpeed((float) App.getInstance(this).getMaxSpeed());
+
+        if (!App.getInstance(this).isLocationIsConnect()) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+                return;
+            }
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
+                    1000 * 10, 10, locationListener);
+        }
     }
 
     private LocationListener locationListener = new LocationListener() {
@@ -123,16 +162,9 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onProviderEnabled(String provider) {
-//            checkEnabled();
             if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                     ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
+                ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
                 return;
             }
             showLocation(locationManager.getLastKnownLocation(provider));
@@ -145,166 +177,108 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onStatusChanged(String provider, int status, Bundle extras) {
-            if (provider.equals(LocationManager.GPS_PROVIDER)) {
-                Toast.makeText(MainActivity.this, "Статус GPS: " + String.valueOf(status), Toast.LENGTH_SHORT).show();
-            }
         }
     };
 
     private void showLocation(Location location) {
-        TextView speed = findViewById(R.id.speed);
-        speed.setText(String.format("Скорость: %s км/ч", location.getSpeed()));
-        TextView altitude = findViewById(R.id.altitude);
-        altitude.setText(String.format("Скорость: %s м", location.getAltitude()));
-    }
+        int gpsSpeed = (int)location.getSpeed();
+//        TextView speed = findViewById(R.id.speed);
+//        speed.setSpeedAt(gpsSpeed);
+        App app = App.getInstance(this);
+        app.setLocationIsConnect(true);
 
-    private int mcTokmh(int mc) {
-        return mc*3600/1000;
-    }
+        TextView gas = findViewById(R.id.speed);
+        gas.setText(String.format("%s",  gpsSpeed));
 
-    private Observable<String> readFromSocket(InputStream inputStream) {
-        return Observable.create(subscriber -> {
-            byte[] packet = new byte[0];
-            try {
-                while (true) {
-                    int available = inputStream.available();
-                    if (available > 0) {
-                        byte[] buff = new byte[available];
-                        inputStream.read(buff);
-                        packet = concatArrays(packet, buff);
-                        if (checkPacket(packet)) {
-                            subscriber.onNext(new String(packet));
-                            packet = new byte[0];
-                        }
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
+        TextView altitude = findViewById(R.id.alt);
+        int alt = (int)location.getAltitude();
+        altitude.setText(String.format("%s", alt));
+
+        app.setSpeed(gpsSpeed);
+        app.setAlt(alt);
     }
 
 
-    private byte[] concatArrays(byte[] ar1, byte[] ar2) {
-        byte[] result = new byte[ar1.length + ar2.length];
-        System.arraycopy(ar1, 0, result, 0, ar1.length);
-        System.arraycopy(ar2, 0, result, ar1.length, ar2.length);
-        return result;
-    }
-
-    private boolean checkPacket(byte[] bytes) {
-        return checkHeader(bytes) &&
-                checkStartPacket(bytes) &&
-                checkDataLength(bytes) &&
-                checkCRC(bytes);
-    }
-
-    private boolean checkHeader(byte[] bytes) {
-        return bytes.length > HEADER_LENGTH;
-    }
-
-    private boolean checkDataLength(byte[] bytes) {
-        return getDataLength(bytes) <= bytes.length - HEADER_LENGTH - CRC_LENGTH;
-    }
-
-    private boolean checkStartPacket(byte[] bytes) {
-        return bytes[0] == STX;
-    }
-
-    private byte getCRC(byte[] bytes) {
-        return bytes[bytes.length - 1];
-    }
-
-    private boolean checkCRC(byte[] bytes) {
-        final byte[] data = Arrays.copyOfRange(bytes, HEADER_LENGTH, bytes.length - CRC_LENGTH - 1);
-        int result = 0;
-        for (byte b : data) {
-            result += b;
-            System.out.println(result & 0xFF);
-        }
-        return (result & 0xFF) == getCRC(bytes);
-    }
-
-    private byte getDataLength(byte[] bytes) {
-        return bytes[2];
-    }
-
-    private Response parseData(String data) {
-        final String[] split = data.split("_");
+    private Response parseData(byte[] data) {
         final Response response = new Response();
-        for (String param : split) {
-            final Prefix prefix = Prefix.valueOf((char) param.getBytes()[0]);
+        int fieldCount = data.length / FIELD_LENGTH;
+
+        for (int i = 0; i < fieldCount; i++) {
+            byte[] field = Arrays.copyOfRange(data, i * FIELD_LENGTH, (i + 1) * FIELD_LENGTH);
+            byte prefix = (byte) (field[0] & 0xF0);
+            int fieldValue = byteArrayToInt(Arrays.copyOfRange(field, 1, FIELD_LENGTH));
             switch (prefix) {
-                case TEMP: {
-                    final String paramData = param.substring(1, param.length());
-                    final BigDecimal temp = new BigDecimal(paramData).divide(new BigDecimal(10), 1, BigDecimal.ROUND_HALF_UP);
+                case 0x00: {
+                    response.setPeriod(fieldValue);
+                    break;
+                }
+                case 0x10: {
+                    final BigDecimal temp = new BigDecimal(fieldValue).divide(new BigDecimal(10), 1, BigDecimal.ROUND_HALF_UP);
                     response.addTemp(temp);
                     break;
                 }
-                case FREQ: {
-                    final String[] dates = param.split(Prefix.PERIOD.getStringPrefix());
-                    final String tickCount = dates[0].substring(1, dates[0].length());
-                    final String time = dates[1];
+                case 0x20: {
 
-                    final int tickCountInt = Integer.parseInt(tickCount);
-                    final int timeInt = Integer.parseInt(time);
-                    final int freq = tickCountInt * 1000 * 60 / timeInt;
+                    final int freq = fieldValue * 1000 * 60 / response.getPeriod();
                     response.addFreq(freq);
                     break;
                 }
-                case PINSIN: {
-                    final String paramData = param.substring(1, 2);
-                    response.addPinsIn(Byte.parseByte(paramData));
+                case 0x30: {
+                    response.addPinsIn(fieldValue);
                     break;
                 }
-                case PINSOUT: {
-                    final String paramData = param.substring(1, 2);
-                    response.addPinsOut(Byte.parseByte(paramData));
+                case 0x40: {
+                    response.addPinsOut(fieldValue);
                     break;
                 }
             }
         }
+
         return response;
     }
 
+    private int byteArrayToInt(byte[] bytes) {
+        for (int i = 0; i < bytes.length / 2; i++) {
+            byte temp = bytes[i];
+            bytes[i] = bytes[bytes.length - i - 1];
+            bytes[bytes.length - i - 1] = temp;
+        }
+        return ByteBuffer.wrap(bytes).getInt(); // 1
 
-    private String getData(String packet) {
-        return packet.substring(HEADER_LENGTH, packet.length() - CRC_LENGTH);
+    }
+
+    private byte[] getData(byte[] packet) {
+        return Arrays.copyOfRange(packet, HEADER_LENGTH, packet.length - CRC_LENGTH);
     }
 
     private void displayData(Response response) {
+        if (response == null) return;
+
         List<BigDecimal> temps = response.getTemps();
 
         TextView temp1 = findViewById(R.id.temp1);
-        temp1.setText(String.format("Температура 1:   %s C", temps.get(0).toPlainString()));
+        temp1.setText(String.format("%s", temps.get(0).toPlainString()));
         TextView temp2 = findViewById(R.id.temp2);
-        temp2.setText(String.format("Температура 2:   %s C", temps.get(1).toPlainString()));
-        TextView temp3 = findViewById(R.id.temp3);
-        temp3.setText(String.format("Температура 3:   %s C", temps.get(2).toPlainString()));
-        TextView temp4 = findViewById(R.id.temp4);
-        temp4.setText(String.format("Температура 4:   %s C", temps.get(3).toPlainString()));
-
+        temp2.setText(String.format("%s", temps.get(1).toPlainString()));
+        TextView volt = findViewById(R.id.volt);
+        volt.setText(String.format("%s", temps.get(2).toPlainString()));
         List<Integer> freqs = response.getFreqs();
+        int period = response.getPeriod();
 
-        TextView freq1 = findViewById(R.id.freq1);
-        freq1.setText(String.format(Locale.getDefault(), "Обороты двигателя:   %d об/мин", freqs.get(0)));
-        TextView freq2 = findViewById(R.id.freq2);
-        freq2.setText(String.format(Locale.getDefault(), "Расход топлива:   %d л/100км", freqs.get(1)));
+        TextView freq1 = findViewById(R.id.eng_frec);
+        BigDecimal periodCount = new BigDecimal(60000).divide(new BigDecimal(period), RoundingMode.CEILING).setScale(3, RoundingMode.CEILING);
+        int frec1 = periodCount.multiply(new BigDecimal(freqs.get(0))).divide(new BigDecimal(App.getInstance(this).getTickCount()), RoundingMode.CEILING).setScale(0, RoundingMode.CEILING).intValue();
+        freq1.setText(String.format(Locale.getDefault(), "%d", frec1));
 
-        List<Byte> pinsIn = response.getPinsIn();
+        List<Integer> pinsIn = response.getPinsIn();
 
-        TextView pinsIn1 = findViewById(R.id.pinsin1);
-        pinsIn1.setText(String.format(Locale.getDefault(), "Вход 1:   %s", pinsIn.get(0) == 0 ? "выкл" : "вкл"));
-        TextView pinsIn2 = findViewById(R.id.pinsin2);
-        pinsIn2.setText(String.format(Locale.getDefault(), "Вход 2:   %s", pinsIn.get(1) == 0 ? "выкл" : "вкл"));
+        ImageView din1 = findViewById(R.id.din1);
+        int inColor1 = pinsIn.get(0) == 0 ? R.color.switch_unchecked : R.color.switch_checked;
+        din1.setBackgroundColor(getResources().getColor(inColor1));
 
-        List<Byte> pinsOut = response.getPinsOut();
-
-        TextView pinsOut1 = findViewById(R.id.pinsout1);
-        pinsOut1.setText(String.format(Locale.getDefault(), "Выход 1:   %s", pinsOut.get(0) == 0 ? "выкл" : "вкл"));
-        TextView pinsOut2 = findViewById(R.id.pinsout2);
-        pinsOut2.setText(String.format(Locale.getDefault(), "Выход 2:   %s", pinsOut.get(1) == 0 ? "выкл" : "вкл"));
-
+        ImageView din2 = findViewById(R.id.din2);
+        int inColor2 = pinsIn.get(1) == 0 ? R.color.switch_unchecked : R.color.switch_checked;
+        din2.setBackgroundColor(getResources().getColor(inColor2));
 
     }
 }

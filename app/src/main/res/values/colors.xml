@@ -3,4 +3,10 @@
     <color name="colorPrimary">#3F51B5</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
+    <color name="ledColor">#76FF03</color>
+    <color name="labelColor">#FFFFFF</color>
+    <color name="bacground">#000000</color>
+    <color name="switch_checked">#37FF00</color>
+    <color name="switch_unchecked">#FF4400</color>
+
 </resources>

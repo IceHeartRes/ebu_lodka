@@ -1,3 +1,8 @@
 <resources>
-    <string name="app_name">Ebu_lodka</string>
+    <string name="app_name">Контроль двигателя</string>
+    <string name="settings_title">Настройки</string>
+    <string name="tick_count">Кол-во сигналов на оборот двигателя</string>
+    <string name="mlPerTick">Объем топлива на один отсчет</string>
+    <string name="save">Сохранить</string>
+    <string name="max_speed">Максимальная скорость</string>
 </resources>
